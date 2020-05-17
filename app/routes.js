@@ -15,6 +15,7 @@ module.exports = function (app, db) {
     app.route('/auth/github/callback')
       .get(passport.authenticate('github', { failureRedirect: '/' }), (req,res) => {
           req.session.user_id = req.user.id;
+          // console.log('redirect to chat...')
           res.redirect('/chat');
       });
 
@@ -25,7 +26,8 @@ module.exports = function (app, db) {
 
     app.route('/chat')
       .get(ensureAuthenticated, (req, res) => {
-        console.log(req.session);
+        // req.user is the same as the returned doc.value inside auth.js:findAndModify()
+        // console.log(req.user);
            res.render(process.cwd() + '/views/pug/chat', {user: req.user});
       });
 
@@ -35,6 +37,20 @@ module.exports = function (app, db) {
           res.redirect('/');
       });
 
+  // try insert. for debug use
+  app.get("/insertone", function(req, res) {
+    // Insert a single document
+    db.collection("chatusers").insertOne({ username: "Santa" }, function(err, r) {
+      if (err) {
+        console.log("error inserting new record.",err);
+        res.send({ insertone: "error" });
+      } else {
+        console.log("insert successful.");
+        res.send({ insertone: "successful" });
+      }
+    });
+  });
+  
     app.use((req, res, next) => {
       res.status(404)
         .type('text')
