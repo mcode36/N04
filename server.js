@@ -2,7 +2,7 @@
 /* 
 Project Page: https://glitch.com/~global-nebulous-verbena
 Live App: https://global-nebulous-verbena.glitch.me
-Stage: Advanced Node and Express - Set up the Environment
+Stage: Final
 */
 
 const express = require("express");
@@ -21,6 +21,7 @@ const cors = require("cors");
 app.use(cors());
 const http = require("http").Server(app);
 const io = require("socket.io")(http);
+const passportSocketIo = require("passport.socketio");
 
 fccTesting(app); //For FCC testing purposes
 
@@ -53,8 +54,38 @@ mongo.connect(process.env.DATABASE, (err, client) => {
   http.listen(process.env.PORT || 3000);
 
   //start socket.io code
+  io.use(
+    passportSocketIo.authorize({
+      cookieParser: cookieParser,
+      key: "express.sid",
+      secret: process.env.SESSION_SECRET,
+      store: sessionStore
+    })
+  );
+
+  var currentUsers = 0;
+
   io.on("connection", socket => {
-    console.log("A user has connected 123");
+    ++currentUsers;
+    console.log("user " + socket.request.user.name + " connected");
+    io.emit("user", {
+      name: socket.request.user.name,
+      currentUsers,
+      connected: true
+    });
+
+    socket.on("disconnect", () => {
+      --currentUsers;
+      io.emit("user", {
+        name: socket.request.user.name,
+        currentUsers,
+        connected: true
+      });
+    });
+
+    socket.on("chat message", message => {
+      io.emit("chat message", { name: socket.request.user.name, message });
+    });
   });
 
   //end socket.io code
